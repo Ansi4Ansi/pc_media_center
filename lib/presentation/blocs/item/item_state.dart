@@ -18,14 +18,29 @@ class ItemInitial extends ItemState {
 class ItemLoaded extends ItemState {
   final List<ItemEntity> items;
   const ItemLoaded({required this.items});
-  
+
   @override
   List<Object> get props => [items];
 }
 
+class SingleItemLoaded extends ItemState {
+  final ItemEntity item;
+  const SingleItemLoaded({required this.item});
+
+  @override
+  List<Object> get props => [item];
+}
+
 class ItemEmpty extends ItemState {
   const ItemEmpty();
-  
+
+  @override
+  List<Object> get props => [];
+}
+
+class ItemDeleted extends ItemState {
+  const ItemDeleted();
+
   @override
   List<Object> get props => [];
 }
