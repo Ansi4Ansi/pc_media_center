@@ -1,99 +1,161 @@
 # PC Media Center - Roadmap
 
 ## Overview
-A media center application for managing and organizing digital media.
+Media center application for organizing and launching apps, games, movies, and media.
+
+**Current Milestone:** v1.0 Core Functionality MVP
 
 ---
 
-## Requirements
+## Milestone History
 
-### Core Features
-- [ ] User authentication and profiles
-- [ ] Media library management (files, folders)
-- [ ] Media player with playback controls
-- [ ] Search and filtering capabilities
-- [ ] Playlist creation and management
-- [ ] Social sharing features
+### v0.7 - Foundation & Critical Fixes ✅
+**Status:** Complete  
+**Date:** 2026-04-19
+
+Fixed compilation errors, UI bugs, memory leaks, and established testing infrastructure.
 
 ---
 
-## Phases
+## Current Milestone: v1.0 Core Functionality MVP
 
-### Phase 1: Foundation & Authentication
-**Goal:** Set up project structure, authentication system, and basic user profiles.
+**Goal:** Make the app actually usable - implement minimum viable features
 
-#### Plans:
-- [ ] **01-auth-setup**: Initialize project with auth configuration, database schema for users, and authentication endpoints
-- [ ] **02-user-profiles**: Create user profile management (CRUD operations)
-- [ ] **03-session-management**: Implement session handling, token refresh, logout functionality
+**Target:** Users can add items, view details, and launch files/programs
 
 ---
 
-### Phase 2: Media Library Foundation
-**Goal:** Build core media library structure with file system integration.
+## Phase 8: Launcher Service & Item Detail
 
-#### Plans:
-- [ ] **04-media-models**: Define media entity models (files, folders, playlists)
-- [ ] **05-file-system-api**: Create API endpoints for media CRUD operations
-- [ ] **06-library-ui**: Build media library browser interface
+**Goal:** Implement cross-platform file launching and item detail view
 
----
+**Requirements:** REQ-01, REQ-03
 
-### Phase 3: Media Player Core
-**Goal:** Implement the core playback engine and controls.
-
-#### Plans:
-- [ ] **07-player-engine**: Set up video/audio player with HLS support
-- [ ] **08-playback-controls**: Build play/pause, seek, volume controls
-- [ ] **09-screen-sync**: Implement multi-device sync capabilities
-
----
-
-### Phase 4: Search & Discovery
-**Goal:** Add search functionality and content discovery features.
-
-#### Plans:
-- [ ] **10-search-engine**: Implement full-text search with filters
-- [ ] **11-recommendations**: Build recommendation algorithms
-- [ ] **12-trending-content**: Create trending/featured content feeds
+### Plans:
+- [ ] **08-01-PLAN.md** — LauncherService Implementation
+  - Cross-platform file launching (Windows/Linux/macOS)
+  - Error handling for missing files
+  - Support for launch arguments
+  
+- [ ] **08-02-PLAN.md** — ItemDetailScreen Implementation
+  - Full item detail UI with poster, metadata
+  - Launch button integration
+  - Edit/Delete buttons
 
 ---
 
-### Phase 5: Social Features
-**Goal:** Add social sharing and community features.
+## Phase 9: Item Form & File Picker
 
-#### Plans:
-- [ ] **13-social-sharing**: Implement share to social platforms
-- [ ] **14-comments-reviews**: Build comment/review systems
-- [ ] **15-ratings-favorites**: Create rating and favorite functionality
+**Goal:** Implement item creation/editing with file selection
+
+**Requirements:** REQ-02
+
+### Plans:
+- [ ] **09-01-PLAN.md** — File Picker Integration
+  - Add file_picker dependency
+  - Create reusable FilePickerButton widget
+  - Platform-specific file dialogs
+  
+- [ ] **09-02-PLAN.md** — ItemFormScreen Implementation
+  - Full form with all fields
+  - Form validation
+  - Create/Update functionality
+  - Category selector
 
 ---
 
-### Phase 6: Advanced Features
-**Goal:** Add advanced capabilities and polish.
+## Phase 10: Directory Scanner
 
-#### Plans:
-- [ ] **16-streaming-integration**: Integrate with streaming services
-- [ ] **17-analytics-dashboard**: Build usage analytics
-- [ ] **18-settings-preferences**: Create comprehensive settings UI
+**Goal:** Implement batch item creation via directory scanning
+
+**Requirements:** REQ-04
+
+### Plans:
+- [ ] **10-01-PLAN.md** — DirectoryScanner Service
+  - Recursive directory scanning
+  - Extension filtering
+  - Filename parsing for metadata
+  - Progress callbacks
+  
+- [ ] **10-02-PLAN.md** — Scanner UI Integration
+  - "Scan Folder" button in CategoryScreen
+  - Progress dialog
+  - Batch item creation
+  - Duplicate detection
 
 ---
 
-### Phase 7: Fix Critical Code Issues
-**Goal:** Address all critical, high, and medium concerns identified in codebase investigation.
-**Requirements:** CRITICAL-01, CRITICAL-02, CRITICAL-03, CRITICAL-04, HIGH-05, HIGH-06, HIGH-07, HIGH-08, HIGH-09, HIGH-10, HIGH-11
-**Plans:** 5 plans in 3 waves
+## Phase 11: Local Search & Category Polish
 
-#### Plans:
-- [ ] **07-01-PLAN.md** — Critical Compilation Fixes (Wave 1): Fix undefined variable, import paths, missing imports
-- [ ] **07-02-PLAN.md** — Critical UI Bug Fix (Wave 1): Fix dialog onChanged bug
-- [ ] **07-03-PLAN.md** — Memory & Lifecycle Fixes (Wave 2): Cancel subscriptions, fix BLoC lifecycle
-- [ ] **07-04-PLAN.md** — Error Handling & Logging (Wave 2): Replace print(), add logging, domain exceptions, Dio timeouts
-- [ ] **07-05-PLAN.md** — Testing Infrastructure (Wave 3): Set up bloc_test, create BLoC unit tests
+**Goal:** Add search functionality and complete category CRUD
+
+**Requirements:** REQ-05, REQ-06, REQ-07
+
+### Plans:
+- [ ] **11-01-PLAN.md** — Local Search Implementation
+  - Search bar in CategoryScreen
+  - Real-time filtering
+  - Debounced search input
+  
+- [ ] **11-02-PLAN.md** — Category Edit & Defaults
+  - Edit category functionality
+  - Default categories seeding
+  - First-run detection
+
+---
+
+## Dependency Graph
+
+```
+Phase 8 (Launcher + Detail)
+    │
+    ├──► Phase 9 (Form + Picker)
+    │       │
+    │       ├──► Phase 10 (Scanner)
+    │       │
+    │       └──► Phase 11 (Search + Polish)
+    │
+    └──► Can run in parallel with other phases
+```
+
+**Critical Path:** Phase 8 → Phase 9 → Phase 10 → Phase 11
 
 ---
 
 ## Notes
-- Phase 1 establishes the foundation for all subsequent phases
-- Authentication must be completed before any user-facing features
-- Phase 7 addresses technical debt before adding new features
+
+- Phase 8 is foundational - launcher service needed by detail screen
+- Phase 9 can start after Phase 8 launcher is ready
+- Phase 10 and 11 can be done in parallel
+- Each phase should produce working, testable features
+- All phases must pass `flutter analyze` and `flutter test`
+
+---
+
+## Future Milestones
+
+### v1.1 - Metadata Enrichment
+- Online search (TMDB/Kinopoisk)
+- Poster caching
+- Automatic metadata fetching
+
+### v1.2 - Advanced Features
+- Icon extraction from executables
+- Settings screen
+- Theme switching
+- Language switching
+
+### v1.3 - Input & Accessibility
+- Gamepad support
+- Keyboard navigation
+- Voice input
+
+### v2.0 - Polish & Release
+- Performance optimization
+- Comprehensive testing
+- Documentation
+- Release builds
+
+---
+
+*Last Updated: 2026-04-19*

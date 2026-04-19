@@ -5,18 +5,19 @@ extension ItemModelMapper on Item {
   ItemEntity toEntity() {
     return ItemEntity(
       id: id,
+      name: title,
       categoryId: categoryId,
       title: title,
-      description: description,
+      description: description ?? '',
       posterPath: posterPath,
       posterUrl: posterUrl,
-      launchPath: launchPath,
+      launchPath: launchPath ?? '',
       launchArgs: launchArgs,
       itemType: _parseItemType(itemType),
-      year: year,
-      rating: rating,
-      externalId: externalId,
-      metadataJson: metadataJson,
+      year: year ?? 0,
+      rating: rating ?? 0.0,
+      externalId: externalId ?? '',
+      metadataJson: metadataJson ?? '{}',
       sortOrder: sortOrder,
       isFavorite: isFavorite,
       createdAt: createdAt,
@@ -26,14 +27,12 @@ extension ItemModelMapper on Item {
 
   static ItemType _parseItemType(String type) {
     switch (type) {
-      case 'app':
-        return ItemType.app;
-      case 'media':
-        return ItemType.media;
-      case 'url':
-        return ItemType.url;
+      case 'tvShow':
+        return ItemType.tvShow;
+      case 'episode':
+        return ItemType.episode;
       default:
-        return ItemType.file;
+        return ItemType.movie;
     }
   }
 }
@@ -41,14 +40,12 @@ extension ItemModelMapper on Item {
 extension ItemTypeExtension on ItemType {
   String toDbString() {
     switch (this) {
-      case ItemType.app:
-        return 'app';
-      case ItemType.file:
-        return 'file';
-      case ItemType.media:
-        return 'media';
-      case ItemType.url:
-        return 'url';
+      case ItemType.tvShow:
+        return 'tvShow';
+      case ItemType.episode:
+        return 'episode';
+      case ItemType.movie:
+        return 'movie';
     }
   }
 }

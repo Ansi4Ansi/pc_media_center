@@ -8,12 +8,12 @@ class CategoryCard extends StatelessWidget {
   final VoidCallback? onDelete;
 
   const CategoryCard({
-    Key? key,
+    super.key,
     required this.category,
     this.onTap,
     this.onEdit,
     this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +82,6 @@ class CategoryCard extends StatelessWidget {
       Colors.brown,
       Colors.amber,
     ];
-    return colors[name.hashCode.abs % 8];
+    return colors[name.hashCode.abs() % 8];
   }
 }

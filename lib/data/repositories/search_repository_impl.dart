@@ -1,5 +1,6 @@
-import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
+import '../../core/error/exceptions.dart';
 import '../../domain/entities/search_result.dart';
 import '../../domain/repositories/search_repository.dart';
 import '../datasources/local/local_data_source.dart';
@@ -10,7 +11,8 @@ import '../datasources/remote/kinopoisk_api.dart';
 class SearchRepositoryImpl implements SearchRepository {
   final TMDbApiClient _tmdbClient;
   final KinopoiskApiClient _kinopoiskClient;
-  final LocalDataSource _localCache;
+  // ignore: unused_field
+  final LocalDataSource _localCache; // TODO: Implement search result caching
 
   SearchRepositoryImpl(
     this._tmdbClient,
@@ -34,8 +36,14 @@ class SearchRepositoryImpl implements SearchRepository {
       final kinopoiskResults = _extractKinopoiskResults(kinopoiskResponse);
 
       return kinopoiskResults;
-    } catch (e) {
-      throw Exception('Ошибка поиска фильмов: $e');
+    } on AppException {
+      // Re-throw domain exceptions as-is
+      rethrow;
+    } catch (e, stackTrace) {
+      throw ApiException(
+        'Ошибка поиска фильмов: $e',
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -55,17 +63,23 @@ class SearchRepositoryImpl implements SearchRepository {
       // Добавляем результаты из Кинопоиск
       results.addAll(_extractKinopoiskResults(kinopoiskResponse));
 
-      return results.toSorted((a, b) {
-        // Сортировка: сначала по рейтингу (убывание), затем по году (убывание)
-        final ratingCompare = b.rating?.compareTo(a.rating ?? 0.0);
+      // Сортировка: сначала по рейтингу (убывание), затем по году (убывание)
+      results.sort((a, b) {
+        final ratingCompare = b.rating?.compareTo(a.rating ?? 0.0) ?? 0;
         if (ratingCompare != 0) return ratingCompare;
 
         final yearCompare = (b.year ?? 0).compareTo(a.year ?? 0);
         return yearCompare;
       });
-    } catch (e) {
-      // Возвращаем пустой список при ошибке, а не выбрасываем исключение
-      print('Ошибка поиска метаданных: $e');
+
+      return results;
+    } on AppException {
+      // Re-throw domain exceptions as-is
+      rethrow;
+    } catch (e, stackTrace) {
+      // Возвращаем пустой список при ошибке, но логируем её
+      debugPrint('Ошибка поиска метаданных: $e');
+      debugPrint('StackTrace: $stackTrace');
       return [];
     }
   }
@@ -97,8 +111,10 @@ class SearchRepositoryImpl implements SearchRepository {
           externalId: item['id'].toString(),
           source: 'tmdb',
         ));
-      } catch (e) {
-        // Пропускаем невалидные элементы
+      } catch (e, stackTrace) {
+        // Пропускаем невалидные элементы, но логируем ошибку
+        debugPrint('Failed to parse TMDB result item: $e');
+        debugPrint('StackTrace: $stackTrace');
       }
     }
 
@@ -120,7 +136,7 @@ class SearchRepositoryImpl implements SearchRepository {
         if (title.isEmpty) continue;
 
         final posterUrl = posterPath != null && posterPath.isNotEmpty
-            ? 'https://img.kinopoisk.ru/cover/${posterPath}'
+            ? 'https://img.kinopoisk.ru/cover/$posterPath'
             : null;
 
         results.add(SearchResult(
@@ -132,8 +148,10 @@ class SearchRepositoryImpl implements SearchRepository {
           externalId: item['id'].toString(),
           source: 'kinopoisk',
         ));
-      } catch (e) {
-        // Пропускаем невалидные элементы
+      } catch (e, stackTrace) {
+        // Пропускаем невалидные элементы, но логируем ошибку
+        debugPrint('Failed to parse Kinopoisk result item: $e');
+        debugPrint('StackTrace: $stackTrace');
       }
     }
 

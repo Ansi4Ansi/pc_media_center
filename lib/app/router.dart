@@ -21,7 +21,7 @@ final router = GoRouter(
     GoRoute(
       path: '/item/:id',
       builder: (context, state) =>
-          ItemDetailScreen(itemId: state.pathParameters['id']!),
+          ItemDetailScreen(itemId: int.parse(state.pathParameters['id']!)),
     ),
     GoRoute(
       path: '/item/new',

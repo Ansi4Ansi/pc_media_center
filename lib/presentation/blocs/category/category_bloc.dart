@@ -1,7 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/entities/category.dart';
-import '../../domain/repositories/category_repository.dart';
+import '../../../domain/entities/category.dart';
+import '../../../domain/repositories/category_repository.dart';
 import 'category_event.dart';
 import 'category_state.dart';
 
@@ -14,9 +13,6 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     on<UpdateCategoryEvent>(_onUpdateCategory);
     on<DeleteCategoryEvent>(_onDeleteCategory);
   }
-
-  @override
-  CategoryState get initialState => const CategoryInitial();
 
   Future<void> _onLoadCategories(LoadCategories event, Emitter<CategoryState> emit) async {
     try {
@@ -34,13 +30,15 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
         emit(CategoryError(message: 'Название категории обязательно'));
         return;
       }
-      final newCategory = await categoryRepository.addCategory(
+      await categoryRepository.addCategory(
         name: event.name,
         isMovieType: event.isMovieType,
         scanPaths: event.scanPaths,
         fileExtensions: event.fileExtensions,
       );
-      emit(CategoryLoaded(categories: [...state.categories, newCategory]));
+      // Reload categories to get the updated list
+      final categories = await categoryRepository.getCategories();
+      emit(CategoryLoaded(categories: categories));
     } catch (e) {
       emit(CategoryError(message: e.toString()));
     }
@@ -48,18 +46,26 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
 
   Future<void> _onUpdateCategory(UpdateCategoryEvent event, Emitter<CategoryState> emit) async {
     try {
-      if (event.categoryId == null) {
-        emit(CategoryError(message: 'Не указана категория для обновления'));
-        return;
-      }
-      final updatedCategory = await categoryRepository.updateCategory(
-        categoryId: event.categoryId!,
+      // Fetch the existing category from repository
+      final existingCategory = await categoryRepository.getCategoryById(event.categoryId);
+
+      final updatedCategory = CategoryEntity(
+        id: event.categoryId,
         name: event.name,
+        icon: existingCategory.icon,
+        sortOrder: existingCategory.sortOrder,
         isMovieType: event.isMovieType,
         scanPaths: event.scanPaths,
         fileExtensions: event.fileExtensions,
+        createdAt: existingCategory.createdAt,
+        updatedAt: DateTime.now(),
       );
-      emit(CategoryLoaded(categories: state.categories.map((c) => c.id == event.categoryId ? updatedCategory : c).toList()));
+
+      await categoryRepository.updateCategory(updatedCategory);
+
+      // Reload categories to get the updated list
+      final categories = await categoryRepository.getCategories();
+      emit(CategoryLoaded(categories: categories));
     } catch (e) {
       emit(CategoryError(message: e.toString()));
     }
@@ -67,12 +73,10 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
 
   Future<void> _onDeleteCategory(DeleteCategoryEvent event, Emitter<CategoryState> emit) async {
     try {
-      if (event.categoryId == null) {
-        emit(CategoryError(message: 'Не указана категория для удаления'));
-        return;
-      }
-      await categoryRepository.deleteCategory(categoryId: event.categoryId!);
-      emit(CategoryLoaded(categories: state.categories.where((c) => c.id != event.categoryId).toList()));
+      await categoryRepository.deleteCategory(event.categoryId);
+      // Reload categories to get the updated list
+      final categories = await categoryRepository.getCategories();
+      emit(CategoryLoaded(categories: categories));
     } catch (e) {
       emit(CategoryError(message: e.toString()));
     }

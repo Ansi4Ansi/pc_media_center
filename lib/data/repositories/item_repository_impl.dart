@@ -53,7 +53,7 @@ class ItemRepositoryImpl implements ItemRepository {
     String? posterUrl,
     String? launchPath,
     String? launchArgs,
-    ItemType itemType = ItemType.file,
+    ItemType itemType = ItemType.movie,
     int? year,
     double? rating,
     String? externalId,

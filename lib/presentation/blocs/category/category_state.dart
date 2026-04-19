@@ -4,6 +4,8 @@ import '../../../domain/entities/category.dart';
 abstract class CategoryState extends Equatable {
   const CategoryState();
   
+  List<CategoryEntity> get categories => [];
+  
   @override
   List<Object> get props => [];
 }
@@ -23,6 +25,7 @@ class CategoryLoading extends CategoryState {
 }
 
 class CategoryLoaded extends CategoryState {
+  @override
   final List<CategoryEntity> categories;
   const CategoryLoaded({required this.categories});
   

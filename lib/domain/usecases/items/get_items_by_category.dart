@@ -1,5 +1,5 @@
 import '../../../domain/entities/item.dart';
-import '../../../data/repositories/item_repository_impl.dart';
+import '../../../domain/repositories/item_repository.dart';
 
 abstract class GetItemsByCategory {
   Future<List<ItemEntity>> call({
@@ -10,7 +10,7 @@ abstract class GetItemsByCategory {
 }
 
 class GetItemsByCategoryImpl implements GetItemsByCategory {
-  final ItemRepositoryImpl _itemRepository;
+  final ItemRepository _itemRepository;
 
   GetItemsByCategoryImpl(this._itemRepository);
 

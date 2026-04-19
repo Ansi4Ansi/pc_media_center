@@ -3,15 +3,17 @@ import 'package:equatable/equatable.dart';
 enum ItemType { movie, tvShow, episode }
 
 class ItemEntity extends Equatable {
-  final String id;
+  final int id;
   final String name;
+  final String? posterPath;
   final String? posterUrl;
   final DateTime createdAt;
+  final DateTime? updatedAt;
   final int categoryId;
   final String title;
   final String description;
   final String launchPath;
-  final List<String> launchArgs;
+  final String? launchArgs;
   final ItemType itemType;
   final int year;
   final double rating;
@@ -23,13 +25,15 @@ class ItemEntity extends Equatable {
   const ItemEntity({
     required this.id,
     required this.name,
+    this.posterPath,
     this.posterUrl,
     required this.createdAt,
+    this.updatedAt,
     this.categoryId = 0,
     this.title = '',
     this.description = '',
     this.launchPath = '',
-    this.launchArgs = const [],
+    this.launchArgs,
     this.itemType = ItemType.movie,
     this.year = 0,
     this.rating = 0.0,
@@ -40,11 +44,13 @@ class ItemEntity extends Equatable {
   });
 
   @override
-  List<Object> get props => [
+  List<Object?> get props => [
     id,
     name,
-    posterUrl ?? '',
+    posterPath,
+    posterUrl,
     createdAt,
+    updatedAt,
     categoryId,
     title,
     description,

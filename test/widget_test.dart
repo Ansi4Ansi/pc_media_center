@@ -1,8 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('App smoke test', (WidgetTester tester) async {
-    // Placeholder — will be replaced with real tests
-    expect(true, isTrue);
+  group('Widget Tests', () {
+    testWidgets('Basic app smoke test', (WidgetTester tester) async {
+      // Simple smoke test that always passes
+      expect(true, isTrue);
+    });
   });
 }

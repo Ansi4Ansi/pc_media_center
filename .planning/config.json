@@ -1,0 +1,6 @@
+{
+  "model_profile": "inherit",
+  "graphify": {
+    "enabled": true
+  }
+}

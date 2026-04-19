@@ -7,17 +7,17 @@ abstract class ItemEvent extends Equatable {
   List<Object> get props => [];
 }
 
-class GetItemsByCategory extends ItemEvent {
-  final String categoryId;
-  final int offset;
-  final int limit;
+class GetItemsByCategoryEvent extends ItemEvent {
+  final int categoryId;
+  final int? offset;
+  final int? limit;
 
-  const GetItemsByCategory({
+  const GetItemsByCategoryEvent({
     required this.categoryId,
-    this.offset = 0,
-    this.limit = 50,
+    this.offset,
+    this.limit,
   });
 
   @override
-  List<Object> get props => [categoryId, offset, limit];
+  List<Object> get props => [categoryId, offset ?? 0, limit ?? 50];
 }
