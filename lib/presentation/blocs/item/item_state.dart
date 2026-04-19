@@ -52,3 +52,33 @@ class ItemError extends ItemState {
   @override
   List<Object> get props => [message];
 }
+
+class ItemFormLoading extends ItemState {
+  const ItemFormLoading();
+  
+  @override
+  List<Object> get props => [];
+}
+
+class ItemFormLoaded extends ItemState {
+  final ItemEntity? item;
+  const ItemFormLoaded({this.item});
+  
+  @override
+  List<Object> get props => [item ?? ''];
+}
+
+class ItemSaved extends ItemState {
+  const ItemSaved();
+  
+  @override
+  List<Object> get props => [];
+}
+
+class ItemFormError extends ItemState {
+  final String message;
+  const ItemFormError({required this.message});
+  
+  @override
+  List<Object> get props => [message];
+}

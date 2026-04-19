@@ -4,6 +4,10 @@ import 'package:pc_media_center/domain/entities/item.dart';
 import 'package:pc_media_center/domain/repositories/category_repository.dart';
 import 'package:pc_media_center/domain/repositories/item_repository.dart';
 import 'package:pc_media_center/domain/usecases/items/get_items_by_category.dart';
+import 'package:pc_media_center/domain/usecases/items/get_item_by_id.dart';
+import 'package:pc_media_center/domain/usecases/items/add_item.dart';
+import 'package:pc_media_center/domain/usecases/items/update_item.dart';
+import 'package:pc_media_center/domain/usecases/items/delete_item.dart';
 
 // Repository mocks
 class MockCategoryRepository extends Mock implements CategoryRepository {}
@@ -12,6 +16,14 @@ class MockItemRepository extends Mock implements ItemRepository {}
 
 // Use case mocks
 class MockGetItemsByCategory extends Mock implements GetItemsByCategory {}
+
+class MockGetItemById extends Mock implements GetItemById {}
+
+class MockAddItem extends Mock implements AddItem {}
+
+class MockUpdateItem extends Mock implements UpdateItem {}
+
+class MockDeleteItem extends Mock implements DeleteItem {}
 
 // Test data
 final testDateTime = DateTime(2024, 1, 1);
