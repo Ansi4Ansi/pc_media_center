@@ -23,6 +23,7 @@ import '../../domain/usecases/items/get_item_by_id.dart';
 import '../../domain/usecases/items/get_items_by_category.dart';
 import '../../domain/usecases/items/search_items.dart';
 import '../../domain/usecases/items/update_item.dart';
+import '../../core/services/directory_scanner.dart';
 import '../../core/services/launcher_service.dart';
 
 final getIt = GetIt.instance;
@@ -93,6 +94,7 @@ Future<void> configureDependencies() async {
 
   // Services
   getIt.registerLazySingleton<LauncherService>(LauncherService.create);
+  getIt.registerLazySingleton<DirectoryScanner>(() => DirectoryScanner());
 
   // BLoC
   getIt.registerLazySingleton<CategoryBloc>(() => CategoryBloc(getIt<CategoryRepository>()));
