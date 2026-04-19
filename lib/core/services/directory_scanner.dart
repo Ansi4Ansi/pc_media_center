@@ -65,7 +65,7 @@ class ScannedFile extends Equatable {
   final DateTime modifiedAt;
   final ExtractedMetadata metadata;
 
-  ScannedFile({
+  const ScannedFile({
     required this.path,
     required this.filename,
     required this.extension,
@@ -87,7 +87,7 @@ class ScanProgress extends Equatable {
   final String? error;
   final Duration elapsed;
 
-  ScanProgress({
+  const ScanProgress({
     required this.filesFound,
     required this.filesProcessed,
     this.currentFile,
@@ -187,7 +187,7 @@ class DirectoryScanner {
             queue.add(_ScanEntry(entity, currentDepth + 1));
           }
         }
-      } on FileSystemException catch (e) {
+      } on FileSystemException catch (_) {
         // Continue scanning other directories on permission errors
         continue;
       }
@@ -319,7 +319,7 @@ class DirectoryScanner {
             queue.add(_ScanEntry(entity, currentDepth + 1));
           }
         }
-      } on FileSystemException catch (e) {
+      } on FileSystemException catch (_) {
         // Continue scanning other directories on permission errors
         continue;
       }

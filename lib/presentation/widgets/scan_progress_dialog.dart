@@ -98,7 +98,7 @@ class _ScanProgressDialogState extends State<ScanProgressDialog> {
             if (isScanning) ...[
               // Progress indicator
               LinearProgressIndicator(
-                value: progress!.filesFound > 0
+                value: progress.filesFound > 0
                     ? progress.filesProcessed / progress.filesFound
                     : null,
               ),
@@ -172,7 +172,7 @@ class _ScanProgressDialogState extends State<ScanProgressDialog> {
               ),
               const SizedBox(height: 8),
               Text(
-                progress!.error!,
+                progress.error!,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ] else ...[
