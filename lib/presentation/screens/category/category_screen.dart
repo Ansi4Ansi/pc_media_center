@@ -34,6 +34,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
   bool _hasMore = true;
   final List<ItemEntity> _items = [];
 
+  // Search related
+  bool _isSearching = false;
+  String _searchQuery = '';
+  Timer? _debounceTimer;
+  final TextEditingController _searchController = TextEditingController();
+
   // Scanner related
   final DirectoryScanner _scanner = DirectoryScanner();
   Completer<void>? _scanCancellationToken;
@@ -80,6 +86,44 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
   }
 
+  /// Get filtered items based on search query
+  List<ItemEntity> get _filteredItems {
+    if (_searchQuery.isEmpty) return _items;
+    final lowerQuery = _searchQuery.toLowerCase();
+    return _items.where((item) {
+      final titleMatch = item.title.toLowerCase().contains(lowerQuery);
+      final descMatch = item.description.toLowerCase().contains(lowerQuery);
+      return titleMatch || descMatch;
+    }).toList();
+  }
+
+  /// Handle search input with debounce
+  void _onSearchChanged(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() => _searchQuery = query);
+      }
+    });
+  }
+
+  /// Toggle search mode
+  void _toggleSearch() {
+    setState(() {
+      _isSearching = !_isSearching;
+      if (!_isSearching) {
+        _searchQuery = '';
+        _searchController.clear();
+      }
+    });
+  }
+
+  /// Clear search
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() => _searchQuery = '');
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -88,46 +132,53 @@ class _CategoryScreenState extends State<CategoryScreen> {
         builder: (context) {
           return Scaffold(
             appBar: AppBar(
-              title: Text('Категория: ${widget.categoryName}'),
+              title: _isSearching
+                  ? TextField(
+                      controller: _searchController,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Поиск...',
+                        border: InputBorder.none,
+                        hintStyle: TextStyle(color: Colors.white70),
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                      onChanged: _onSearchChanged,
+                    )
+                  : Text('Категория: ${widget.categoryName}'),
               actions: [
-                IconButton(
-                  icon: const Icon(Icons.folder_open),
-                  onPressed: () => _scanDirectory(context),
-                  tooltip: 'Сканировать папку',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: () => _loadItems(context, 0, _itemsPerPage),
-                  tooltip: 'Обновить',
-                ),
+                if (_isSearching) ...[
+                  if (_searchQuery.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: _clearSearch,
+                      tooltip: 'Очистить',
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: _toggleSearch,
+                    tooltip: 'Закрыть поиск',
+                  ),
+                ] else ...[
+                  IconButton(
+                    icon: const Icon(Icons.search),
+                    onPressed: _toggleSearch,
+                    tooltip: 'Поиск',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.folder_open),
+                    onPressed: () => _scanDirectory(context),
+                    tooltip: 'Сканировать папку',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () => _loadItems(context, 0, _itemsPerPage),
+                    tooltip: 'Обновить',
+                  ),
+                ],
               ],
             ),
-            body: _items.isEmpty
-                ? Center(child: CircularProgressIndicator())
-                : GridView.builder(
-                    padding: const EdgeInsets.all(8),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.75,
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
-                    ),
-                    itemCount: _items.length,
-                    itemBuilder: (context, index) {
-                      final item = _items[index];
-                      return ItemCard(
-                        item: item,
-                        index: index,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ItemDetailScreen(itemId: item.id),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-            floatingActionButton: _hasMore && !_isLoadingMore
+            body: _buildBody(),
+            floatingActionButton: _hasMore && !_isLoadingMore && !_isSearching
                 ? FloatingActionButton.extended(
                     onPressed: () => _loadItems(context, _items.length, _itemsPerPage),
                     icon: const Icon(Icons.add),
@@ -140,9 +191,80 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
+  Widget _buildBody() {
+    if (_items.isEmpty && _isLoadingMore) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_filteredItems.isEmpty && _searchQuery.isNotEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.search_off, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              'Ничего не найдено',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Попробуйте изменить запрос',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_filteredItems.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.folder_open, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'Нет элементов',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+      ),
+      itemCount: _filteredItems.length,
+      itemBuilder: (context, index) {
+        final item = _filteredItems[index];
+        return ItemCard(
+          item: item,
+          index: index,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ItemDetailScreen(itemId: item.id),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _subscription?.cancel();
+    _debounceTimer?.cancel();
+    _searchController.dispose();
     _cancelScan();
     super.dispose();
   }
@@ -330,39 +452,57 @@ class ItemCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-        child: Stack(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: item.posterUrl != null
-                  ? Image.network(
-                      item.posterUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          child: const Icon(Icons.movie),
-                        );
-                      },
-                    )
-                  : Container(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      child: const Icon(Icons.movie),
+            Expanded(
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                    child: item.posterUrl != null
+                        ? Image.network(
+                            item.posterUrl!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Theme.of(context).colorScheme.primaryContainer,
+                                child: const Icon(Icons.movie),
+                              );
+                            },
+                          )
+                        : Container(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            child: const Center(child: Icon(Icons.movie, size: 48)),
+                          ),
+                  ),
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
                     ),
+                  ),
+                ],
+              ),
             ),
-            Positioned(
-              right: 8,
-              bottom: 8,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${index + 1}',
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                item.title,
+                style: Theme.of(context).textTheme.bodyMedium,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ),
           ],

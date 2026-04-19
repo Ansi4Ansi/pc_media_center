@@ -23,10 +23,11 @@ void main() {
     mockItemBloc = MockItemBloc();
     when(() => mockItemBloc.state).thenReturn(const ItemInitial());
     when(() => mockItemBloc.stream).thenAnswer((_) => Stream.value(const ItemInitial()));
+    when(() => mockItemBloc.close()).thenAnswer((_) async {});
   });
 
-  tearDown(() {
-    mockItemBloc.close();
+  tearDown(() async {
+    await mockItemBloc.close();
   });
 
   group('CategoryScreen Search', () {
@@ -85,7 +86,7 @@ void main() {
       await tester.pump();
 
       await tester.enterText(find.byType(TextField), 'test');
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350)); // Wait for debounce
 
       expect(find.byIcon(Icons.clear), findsOneWidget);
     });
@@ -108,7 +109,9 @@ void main() {
       await tester.pump();
 
       await tester.enterText(find.byType(TextField), 'test');
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350)); // Wait for debounce
+
+      expect(find.byIcon(Icons.clear), findsOneWidget);
 
       await tester.tap(find.byIcon(Icons.clear));
       await tester.pump();
