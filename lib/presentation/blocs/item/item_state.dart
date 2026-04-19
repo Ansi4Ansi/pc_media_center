@@ -82,3 +82,39 @@ class ItemFormError extends ItemState {
   @override
   List<Object> get props => [message];
 }
+
+/// State during batch item creation
+class ItemBatchCreating extends ItemState {
+  final int progress;
+  final int total;
+  final int successCount;
+  final int duplicateCount;
+  final int errorCount;
+
+  const ItemBatchCreating({
+    required this.progress,
+    required this.total,
+    this.successCount = 0,
+    this.duplicateCount = 0,
+    this.errorCount = 0,
+  });
+
+  @override
+  List<Object> get props => [progress, total, successCount, duplicateCount, errorCount];
+}
+
+/// State when batch item creation is complete
+class ItemBatchCreated extends ItemState {
+  final int successCount;
+  final int duplicateCount;
+  final int errorCount;
+
+  const ItemBatchCreated({
+    required this.successCount,
+    required this.duplicateCount,
+    required this.errorCount,
+  });
+
+  @override
+  List<Object> get props => [successCount, duplicateCount, errorCount];
+}

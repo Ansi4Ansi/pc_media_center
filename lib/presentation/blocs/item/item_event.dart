@@ -83,3 +83,37 @@ class SaveItemEvent extends ItemEvent {
         itemType,
       ];
 }
+
+/// Data class for batch item creation
+class CreateItemData extends Equatable {
+  final String title;
+  final String launchPath;
+  final int? year;
+  final ItemType itemType;
+  final String? description;
+
+  const CreateItemData({
+    required this.title,
+    required this.launchPath,
+    this.year,
+    this.itemType = ItemType.movie,
+    this.description,
+  });
+
+  @override
+  List<Object?> get props => [title, launchPath, year, itemType, description];
+}
+
+/// Event for batch creating items from scanned files
+class BatchCreateItemsEvent extends ItemEvent {
+  final List<CreateItemData> items;
+  final int categoryId;
+
+  const BatchCreateItemsEvent({
+    required this.items,
+    required this.categoryId,
+  });
+
+  @override
+  List<Object> get props => [items, categoryId];
+}

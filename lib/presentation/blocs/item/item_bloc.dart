@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../domain/entities/item.dart';
 import '../../../domain/usecases/items/add_item.dart' as add_uc;
 import '../../../domain/usecases/items/delete_item.dart' as delete_uc;
 import '../../../domain/usecases/items/get_item_by_id.dart' as get_by_id_uc;
@@ -142,6 +141,61 @@ class ItemBloc extends Bloc<ItemEvent, ItemState> {
       } catch (e) {
         emit(ItemFormError(message: e.toString()));
       }
+    });
+
+    on<BatchCreateItemsEvent>((event, emit) async {
+      final addUseCase = _addItem;
+      if (addUseCase == null) {
+        emit(const ItemError(message: 'AddItem use case not provided'));
+        return;
+      }
+
+      int successCount = 0;
+      int duplicateCount = 0;
+      int errorCount = 0;
+
+      for (int i = 0; i < event.items.length; i++) {
+        final item = event.items[i];
+
+        try {
+          await addUseCase(
+            categoryId: event.categoryId,
+            title: item.title,
+            description: item.description,
+            launchPath: item.launchPath,
+            year: item.year,
+            itemType: item.itemType,
+          );
+          successCount++;
+        } catch (e) {
+          // Check if error is due to duplicate
+          if (e.toString().toLowerCase().contains('duplicate')) {
+            duplicateCount++;
+          } else {
+            errorCount++;
+          }
+        }
+
+        // Emit progress every 5 items or on last
+        if (i % 5 == 0 || i == event.items.length - 1) {
+          emit(ItemBatchCreating(
+            progress: i + 1,
+            total: event.items.length,
+            successCount: successCount,
+            duplicateCount: duplicateCount,
+            errorCount: errorCount,
+          ));
+        }
+      }
+
+      emit(ItemBatchCreated(
+        successCount: successCount,
+        duplicateCount: duplicateCount,
+        errorCount: errorCount,
+      ));
+
+      // Refresh the list
+      add(GetItemsByCategoryEvent(categoryId: event.categoryId));
     });
   }
 }
