@@ -64,4 +64,46 @@ class ItemEntity extends Equatable {
     sortOrder,
     isFavorite,
   ];
+
+  ItemEntity copyWith({
+    int? id,
+    String? name,
+    String? posterPath,
+    String? posterUrl,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    int? categoryId,
+    String? title,
+    String? description,
+    String? launchPath,
+    String? launchArgs,
+    ItemType? itemType,
+    int? year,
+    double? rating,
+    String? externalId,
+    String? metadataJson,
+    int? sortOrder,
+    bool? isFavorite,
+  }) {
+    return ItemEntity(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      posterPath: posterPath ?? this.posterPath,
+      posterUrl: posterUrl ?? this.posterUrl,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      categoryId: categoryId ?? this.categoryId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      launchPath: launchPath ?? this.launchPath,
+      launchArgs: launchArgs ?? this.launchArgs,
+      itemType: itemType ?? this.itemType,
+      year: year ?? this.year,
+      rating: rating ?? this.rating,
+      externalId: externalId ?? this.externalId,
+      metadataJson: metadataJson ?? this.metadataJson,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isFavorite: isFavorite ?? this.isFavorite,
+    );
+  }
 }
