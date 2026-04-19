@@ -24,6 +24,11 @@ void main() {
   late MockUpdateItem mockUpdateItem;
   late ItemBloc itemBloc;
 
+  setUpAll(() {
+    registerFallbackValue(ItemType.movie);
+    registerFallbackValue(testItem);
+  });
+
   setUp(() {
     mockGetItemsByCategory = MockGetItemsByCategory();
     mockGetItemById = MockGetItemById();
@@ -264,13 +269,13 @@ void main() {
         'emits [ItemFormLoading, ItemSaved] when creating new item succeeds',
         build: () {
           when(() => mockAddItem(
-                categoryId: any(named: 'categoryId'),
-                title: any(named: 'title'),
+                categoryId: any(that: isNotNull, named: 'categoryId'),
+                title: any(that: isNotNull, named: 'title'),
                 description: any(named: 'description'),
                 launchPath: any(named: 'launchPath'),
                 posterPath: any(named: 'posterPath'),
                 year: any(named: 'year'),
-                itemType: any(named: 'itemType'),
+                itemType: any(that: isNotNull, named: 'itemType'),
               )).thenAnswer((_) async => 1);
           return itemBloc;
         },
@@ -303,8 +308,10 @@ void main() {
       blocTest<ItemBloc, ItemState>(
         'emits [ItemFormLoading, ItemSaved] when updating existing item succeeds',
         build: () {
-          when(() => mockGetItemById(any())).thenAnswer((_) async => testItem);
-          when(() => mockUpdateItem(any())).thenAnswer((_) async {});
+          when(() => mockGetItemById(any(that: isNotNull)))
+              .thenAnswer((_) async => testItem);
+          when(() => mockUpdateItem(any(that: isNotNull)))
+              .thenAnswer((_) async {});
           return itemBloc;
         },
         act: (bloc) => bloc.add(const SaveItemEvent(
@@ -323,7 +330,7 @@ void main() {
         ],
         verify: (_) {
           verify(() => mockGetItemById(1)).called(1);
-          verify(() => mockUpdateItem(any())).called(1);
+          verify(() => mockUpdateItem(any(that: isNotNull))).called(1);
         },
       );
 
@@ -331,13 +338,13 @@ void main() {
         'emits [ItemFormLoading, ItemFormError] when save fails',
         build: () {
           when(() => mockAddItem(
-                categoryId: any(named: 'categoryId'),
-                title: any(named: 'title'),
+                categoryId: any(that: isNotNull, named: 'categoryId'),
+                title: any(that: isNotNull, named: 'title'),
                 description: any(named: 'description'),
                 launchPath: any(named: 'launchPath'),
                 posterPath: any(named: 'posterPath'),
                 year: any(named: 'year'),
-                itemType: any(named: 'itemType'),
+                itemType: any(that: isNotNull, named: 'itemType'),
               )).thenThrow(Exception('Failed to save item'));
           return itemBloc;
         },
