@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,9 +22,21 @@ class MockItemBloc extends MockBloc<ItemEvent, ItemState> implements ItemBloc {}
 class MockCategoryBloc extends MockBloc<CategoryEvent, CategoryState>
     implements CategoryBloc {}
 
+class FakeItemEvent extends Fake implements ItemEvent {}
+class FakeItemState extends Fake implements ItemState {}
+class FakeCategoryEvent extends Fake implements CategoryEvent {}
+class FakeCategoryState extends Fake implements CategoryState {}
+
 void main() {
   late MockItemBloc mockItemBloc;
   late MockCategoryBloc mockCategoryBloc;
+
+  setUpAll(() {
+    registerFallbackValue(FakeItemEvent());
+    registerFallbackValue(FakeItemState());
+    registerFallbackValue(FakeCategoryEvent());
+    registerFallbackValue(FakeCategoryState());
+  });
 
   setUp(() {
     mockItemBloc = MockItemBloc();
@@ -33,6 +46,17 @@ void main() {
     when(() => mockItemBloc.state).thenReturn(const ItemInitial());
     when(() => mockCategoryBloc.state)
         .thenReturn(CategoryLoaded(categories: testCategories));
+    
+    // Stub stream for both blocs - this is required for BlocProvider
+    when(() => mockItemBloc.stream)
+        .thenAnswer((_) => Stream.value(const ItemInitial()));
+    when(() => mockCategoryBloc.stream)
+        .thenAnswer((_) => Stream.value(CategoryLoaded(categories: testCategories)));
+  });
+
+  tearDown(() {
+    mockItemBloc.close();
+    mockCategoryBloc.close();
   });
 
   Widget createWidgetUnderTest({
@@ -48,6 +72,40 @@ void main() {
         child: ItemFormScreen(
           itemId: itemId,
           initialCategoryId: initialCategoryId,
+        ),
+      ),
+    );
+  }
+
+  // Helper to create widget with a navigator stack for testing navigation
+  Widget createWidgetWithNavigator({
+    String? itemId,
+    int? initialCategoryId,
+  }) {
+    return MaterialApp(
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => Center(
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => MultiBlocProvider(
+                      providers: [
+                        BlocProvider<ItemBloc>.value(value: mockItemBloc),
+                        BlocProvider<CategoryBloc>.value(value: mockCategoryBloc),
+                      ],
+                      child: ItemFormScreen(
+                        itemId: itemId,
+                        initialCategoryId: initialCategoryId,
+                      ),
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Open Form'),
+            ),
+          ),
         ),
       ),
     );
@@ -84,6 +142,10 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pump();
 
+      // Scroll to make the button visible
+      await tester.ensureVisible(find.text('Добавить'));
+      await tester.pump();
+
       // Tap add button without entering any data
       await tester.tap(find.text('Добавить'));
       await tester.pump();
@@ -93,6 +155,7 @@ void main() {
 
     testWidgets('dispatches LoadCategories on init', (tester) async {
       await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pump();
 
       // Verify LoadCategories was dispatched
       verify(() => mockCategoryBloc.add(any(that: isA<LoadCategories>())))
@@ -100,13 +163,23 @@ void main() {
     });
 
     testWidgets('navigates back on cancel', (tester) async {
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetWithNavigator());
       await tester.pump();
 
+      // Open the form
+      await tester.tap(find.text('Open Form'));
+      await tester.pumpAndSettle();
+
+      // Verify form is open
+      expect(find.byType(ItemFormScreen), findsOneWidget);
+
+      // Scroll to make the cancel button visible and tap it
+      await tester.ensureVisible(find.text('Отмена'));
+      await tester.pump();
       await tester.tap(find.text('Отмена'));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      // Should pop the route
+      // Should pop the route - ItemFormScreen should be gone
       expect(find.byType(ItemFormScreen), findsNothing);
     });
   });
@@ -122,12 +195,16 @@ void main() {
 
     testWidgets('dispatches LoadItemForEditEvent on init', (tester) async {
       await tester.pumpWidget(createWidgetUnderTest(itemId: '1'));
+      await tester.pump();
 
       verify(() => mockItemBloc.add(const LoadItemForEditEvent(1))).called(1);
     });
 
     testWidgets('shows loading indicator while loading', (tester) async {
+      // Set up state and stream with loading state
       when(() => mockItemBloc.state).thenReturn(const ItemFormLoading());
+      when(() => mockItemBloc.stream)
+          .thenAnswer((_) => Stream.value(const ItemFormLoading()));
 
       await tester.pumpWidget(createWidgetUnderTest(itemId: '1'));
       await tester.pump();
@@ -136,7 +213,10 @@ void main() {
     });
 
     testWidgets('displays save button in edit mode', (tester) async {
+      // Set up state and stream with loaded state
       when(() => mockItemBloc.state).thenReturn(ItemFormLoaded(item: testItem));
+      when(() => mockItemBloc.stream)
+          .thenAnswer((_) => Stream.value(ItemFormLoaded(item: testItem)));
 
       await tester.pumpWidget(createWidgetUnderTest(itemId: '1'));
       await tester.pump();
@@ -147,19 +227,31 @@ void main() {
 
   group('ItemFormScreen - Bloc States', () {
     testWidgets('navigates back on ItemSaved', (tester) async {
-      whenListen(
-        mockItemBloc,
-        Stream.fromIterable([
-          const ItemSaved(),
-        ]),
-        initialState: const ItemInitial(),
-      );
+      // Create a broadcast controller to allow multiple listeners
+      final controller = StreamController<ItemState>.broadcast();
+      
+      when(() => mockItemBloc.stream).thenAnswer((_) => controller.stream);
+      when(() => mockItemBloc.state).thenReturn(const ItemInitial());
 
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetWithNavigator());
       await tester.pump();
 
-      // Should navigate back
+      // Open the form
+      await tester.tap(find.text('Open Form'));
+      await tester.pumpAndSettle();
+
+      // Verify form is open
+      expect(find.byType(ItemFormScreen), findsOneWidget);
+
+      // Now emit the ItemSaved state
+      controller.add(const ItemSaved());
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // Should navigate back - ItemFormScreen should be gone
       expect(find.byType(ItemFormScreen), findsNothing);
+      
+      await controller.close();
     });
   });
 }

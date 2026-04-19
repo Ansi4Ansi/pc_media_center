@@ -18,9 +18,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
+  CategoryBloc? _bloc;
+
   void _showAddCategoryDialog(BuildContext parentContext) {
     final controller = TextEditingController();
-    final bloc = widget.categoryBloc ?? getIt<CategoryBloc>();
+    final bloc = _bloc ?? widget.categoryBloc ?? getIt<CategoryBloc>();
     
     showDialog<String>(
       context: parentContext,
@@ -60,90 +62,19 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   void _showEditCategoryDialog(BuildContext parentContext, CategoryEntity category) {
-    final controller = TextEditingController(text: category.name);
-    String? errorText;
-
     showDialog<void>(
       context: parentContext,
       builder: (BuildContext dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Редактировать категорию'),
-              content: TextField(
-                controller: controller,
-                autofocus: true,
-                decoration: InputDecoration(
-                  labelText: 'Название',
-                  hintText: 'Введите название категории',
-                  errorText: errorText,
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    controller.dispose();
-                  },
-                  child: const Text('Отмена'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    final newName = controller.text.trim();
-
-                    // Validate empty name
-                    if (newName.isEmpty) {
-                      setDialogState(() {
-                        errorText = 'Название не может быть пустым';
-                      });
-                      return;
-                    }
-
-                    // Check if name hasn't changed
-                    if (newName == category.name) {
-                      Navigator.of(dialogContext).pop();
-                      controller.dispose();
-                      return;
-                    }
-
-                    // Check for duplicates against current categories
-                    final bloc = widget.categoryBloc ?? getIt<CategoryBloc>();
-                    final currentState = bloc.state;
-                    if (currentState is CategoryLoaded) {
-                      final exists = currentState.categories.any(
-                        (c) => c.name.toLowerCase() == newName.toLowerCase() && c.id != category.id,
-                      );
-                      if (exists) {
-                        setDialogState(() {
-                          errorText = 'Категория с таким названием уже существует';
-                        });
-                        return;
-                      }
-                    }
-
-                    // Dispatch update event
-                    bloc.add(
-                      UpdateCategoryEvent(
-                        categoryId: category.id,
-                        name: newName,
-                      ),
-                    );
-
-                    Navigator.of(dialogContext).pop();
-                    controller.dispose();
-                  },
-                  child: const Text('Сохранить'),
-                ),
-              ],
-            );
-          },
+        return _EditCategoryDialog(
+          category: category,
+          bloc: _bloc ?? widget.categoryBloc ?? getIt<CategoryBloc>(),
         );
       },
     );
   }
 
   void _showDeleteConfirmation(BuildContext parentContext, CategoryEntity category) {
-    final bloc = widget.categoryBloc ?? getIt<CategoryBloc>();
+    final bloc = _bloc ?? widget.categoryBloc ?? getIt<CategoryBloc>();
     
     showDialog<void>(
       context: parentContext,
@@ -187,43 +118,168 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bloc = widget.categoryBloc ?? getIt<CategoryBloc>();
-    
-    return BlocProvider(
-      create: (_) => bloc..add(LoadCategories()),
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Категории')),
-        body: BlocBuilder<CategoryBloc, CategoryState>(
-          builder: (context, state) {
-            if (state is CategoryLoading) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is CategoryLoaded) {
-              if (state.categories.isEmpty) {
-                return const Center(child: Text('Нет категорий'));
-              }
-              return ListView.builder(
-                itemCount: state.categories.length,
-                itemBuilder: (context, index) {
-                  final category = state.categories[index];
-                  return CategoryCard(
-                    category: category,
-                    onTap: () => _navigateToCategory(context, category),
-                    onEdit: () => _showEditCategoryDialog(context, category),
-                    onDelete: () => _showDeleteConfirmation(context, category),
+    // Use Builder to properly access context with BlocProvider
+    return Builder(
+      builder: (context) {
+        // Try to get bloc from context first (for tests with BlocProvider.value)
+        CategoryBloc bloc;
+        bool isBlocFromContext = false;
+        try {
+          bloc = context.read<CategoryBloc>();
+          _bloc = bloc;
+          isBlocFromContext = true;
+        } catch (_) {
+          bloc = widget.categoryBloc ?? getIt<CategoryBloc>();
+        }
+
+        Widget buildScaffold() {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Категории')),
+            body: BlocBuilder<CategoryBloc, CategoryState>(
+              builder: (context, state) {
+                if (state is CategoryLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (state is CategoryLoaded) {
+                  if (state.categories.isEmpty) {
+                    return const Center(child: Text('Нет категорий'));
+                  }
+                  return ListView.builder(
+                    itemCount: state.categories.length,
+                    itemBuilder: (context, index) {
+                      final category = state.categories[index];
+                      return CategoryCard(
+                        category: category,
+                        onTap: () => _navigateToCategory(context, category),
+                        onEdit: () => _showEditCategoryDialog(context, category),
+                        onDelete: () => _showDeleteConfirmation(context, category),
+                      );
+                    },
                   );
-                },
-              );
-            } else if (state is CategoryError) {
-              return Center(child: Text(state.message));
-            }
-            return Container();
-          },
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showAddCategoryDialog(context),
-          child: const Icon(Icons.add),
+                } else if (state is CategoryError) {
+                  return Center(child: Text(state.message));
+                }
+                return Container();
+              },
+            ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: () => _showAddCategoryDialog(context),
+              child: const Icon(Icons.add),
+            ),
+          );
+        }
+
+        // If bloc is already in context, wrap with BlocProvider.value so BlocBuilder can find it
+        if (isBlocFromContext) {
+          return BlocProvider<CategoryBloc>.value(
+            value: bloc,
+            child: buildScaffold(),
+          );
+        }
+
+        // Otherwise, provide the bloc with create
+        return BlocProvider(
+          create: (_) => bloc..add(LoadCategories()),
+          child: buildScaffold(),
+        );
+      },
+    );
+  }
+}
+
+class _EditCategoryDialog extends StatefulWidget {
+  final CategoryEntity category;
+  final CategoryBloc bloc;
+
+  const _EditCategoryDialog({
+    required this.category,
+    required this.bloc,
+  });
+
+  @override
+  State<_EditCategoryDialog> createState() => _EditCategoryDialogState();
+}
+
+class _EditCategoryDialogState extends State<_EditCategoryDialog> {
+  late final TextEditingController _controller;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.category.name);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onSave() {
+    final newName = _controller.text.trim();
+
+    // Validate empty name
+    if (newName.isEmpty) {
+      setState(() {
+        _errorText = 'Название не может быть пустым';
+      });
+      return;
+    }
+
+    // Check if name hasn't changed
+    if (newName == widget.category.name) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    // Check for duplicates against current categories
+    final currentState = widget.bloc.state;
+    if (currentState is CategoryLoaded) {
+      final exists = currentState.categories.any(
+        (c) => c.name.toLowerCase() == newName.toLowerCase() && c.id != widget.category.id,
+      );
+      if (exists) {
+        setState(() {
+          _errorText = 'Категория с таким названием уже существует';
+        });
+        return;
+      }
+    }
+
+    // Dispatch update event
+    widget.bloc.add(
+      UpdateCategoryEvent(
+        categoryId: widget.category.id,
+        name: newName,
+      ),
+    );
+
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Редактировать категорию'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(
+          labelText: 'Название',
+          hintText: 'Введите название категории',
+          errorText: _errorText,
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+        TextButton(
+          onPressed: _onSave,
+          child: const Text('Сохранить'),
+        ),
+      ],
     );
   }
 }
