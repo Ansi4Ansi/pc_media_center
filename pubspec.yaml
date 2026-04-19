@@ -39,6 +39,9 @@ dependencies:
   # i18n
   intl: any
 
+  # File picker
+  file_picker: ^8.0.0+1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
