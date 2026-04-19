@@ -1,33 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:pc_media_center/presentation/screens/home/home_screen.dart';
 import 'package:pc_media_center/presentation/blocs/category/category_bloc.dart';
 import 'package:pc_media_center/presentation/blocs/category/category_state.dart';
 import 'package:pc_media_center/presentation/blocs/category/category_event.dart';
 import 'package:pc_media_center/domain/entities/category.dart';
+import 'package:pc_media_center/domain/repositories/category_repository.dart';
 
-class MockCategoryBloc extends Mock implements CategoryBloc {}
+class MockCategoryRepository extends Mock implements CategoryRepository {}
 
-class FakeCategoryEvent extends Fake implements CategoryEvent {}
+class FakeCategoryEntity extends Fake implements CategoryEntity {}
 
 void main() {
-  late MockCategoryBloc mockCategoryBloc;
+  late MockCategoryRepository mockCategoryRepository;
+  final getIt = GetIt.instance;
 
   setUpAll(() {
-    registerFallbackValue(FakeCategoryEvent());
+    registerFallbackValue(FakeCategoryEntity());
   });
 
   setUp(() {
-    mockCategoryBloc = MockCategoryBloc();
-    when(() => mockCategoryBloc.state).thenReturn(const CategoryInitial());
-    when(() => mockCategoryBloc.stream).thenAnswer((_) => Stream.value(const CategoryInitial()));
-    when(() => mockCategoryBloc.close()).thenAnswer((_) async {});
+    mockCategoryRepository = MockCategoryRepository();
+    
+    // Register mock in getIt
+    if (getIt.isRegistered<CategoryBloc>()) {
+      getIt.unregister<CategoryBloc>();
+    }
+    getIt.registerFactory<CategoryBloc>(() => CategoryBloc(mockCategoryRepository));
   });
 
-  tearDown(() async {
-    await mockCategoryBloc.close();
+  tearDown(() {
+    if (getIt.isRegistered<CategoryBloc>()) {
+      getIt.unregister<CategoryBloc>();
+    }
   });
 
   group('HomeScreen Category Edit', () {
@@ -47,35 +54,27 @@ void main() {
     ];
 
     testWidgets('edit icon is visible on category cards', (tester) async {
-      when(() => mockCategoryBloc.state).thenReturn(CategoryLoaded(categories: testCategories));
-      when(() => mockCategoryBloc.stream).thenAnswer((_) => Stream.value(CategoryLoaded(categories: testCategories)));
+      when(() => mockCategoryRepository.getCategories()).thenAnswer((_) async => testCategories);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<CategoryBloc>.value(
-            value: mockCategoryBloc,
-            child: const HomeScreen(),
-          ),
+        const MaterialApp(
+          home: HomeScreen(),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.edit), findsNWidgets(2));
     });
 
     testWidgets('tapping edit icon opens edit dialog', (tester) async {
-      when(() => mockCategoryBloc.state).thenReturn(CategoryLoaded(categories: testCategories));
-      when(() => mockCategoryBloc.stream).thenAnswer((_) => Stream.value(CategoryLoaded(categories: testCategories)));
+      when(() => mockCategoryRepository.getCategories()).thenAnswer((_) async => testCategories);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<CategoryBloc>.value(
-            value: mockCategoryBloc,
-            child: const HomeScreen(),
-          ),
+        const MaterialApp(
+          home: HomeScreen(),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.edit).first);
       await tester.pumpAndSettle();
@@ -85,18 +84,14 @@ void main() {
     });
 
     testWidgets('edit dialog has current category name pre-filled', (tester) async {
-      when(() => mockCategoryBloc.state).thenReturn(CategoryLoaded(categories: testCategories));
-      when(() => mockCategoryBloc.stream).thenAnswer((_) => Stream.value(CategoryLoaded(categories: testCategories)));
+      when(() => mockCategoryRepository.getCategories()).thenAnswer((_) async => testCategories);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<CategoryBloc>.value(
-            value: mockCategoryBloc,
-            child: const HomeScreen(),
-          ),
+        const MaterialApp(
+          home: HomeScreen(),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.edit).first);
       await tester.pumpAndSettle();
@@ -106,18 +101,16 @@ void main() {
     });
 
     testWidgets('saving valid new name dispatches UpdateCategoryEvent', (tester) async {
-      when(() => mockCategoryBloc.state).thenReturn(CategoryLoaded(categories: testCategories));
-      when(() => mockCategoryBloc.stream).thenAnswer((_) => Stream.value(CategoryLoaded(categories: testCategories)));
+      when(() => mockCategoryRepository.getCategories()).thenAnswer((_) async => testCategories);
+      when(() => mockCategoryRepository.getCategoryById(1)).thenAnswer((_) async => testCategories[0]);
+      when(() => mockCategoryRepository.updateCategory(any())).thenAnswer((_) async => true);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<CategoryBloc>.value(
-            value: mockCategoryBloc,
-            child: const HomeScreen(),
-          ),
+        const MaterialApp(
+          home: HomeScreen(),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.edit).first);
       await tester.pumpAndSettle();
@@ -128,22 +121,18 @@ void main() {
       await tester.tap(find.text('Сохранить'));
       await tester.pump();
 
-      verify(() => mockCategoryBloc.add(any(that: isA<UpdateCategoryEvent>()))).called(1);
+      verify(() => mockCategoryRepository.updateCategory(any())).called(1);
     });
 
     testWidgets('cancel button closes dialog without changes', (tester) async {
-      when(() => mockCategoryBloc.state).thenReturn(CategoryLoaded(categories: testCategories));
-      when(() => mockCategoryBloc.stream).thenAnswer((_) => Stream.value(CategoryLoaded(categories: testCategories)));
+      when(() => mockCategoryRepository.getCategories()).thenAnswer((_) async => testCategories);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<CategoryBloc>.value(
-            value: mockCategoryBloc,
-            child: const HomeScreen(),
-          ),
+        const MaterialApp(
+          home: HomeScreen(),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.edit).first);
       await tester.pumpAndSettle();
@@ -152,22 +141,18 @@ void main() {
       await tester.pump();
 
       expect(find.text('Редактировать категорию'), findsNothing);
-      verifyNever(() => mockCategoryBloc.add(any(that: isA<UpdateCategoryEvent>())));
+      verifyNever(() => mockCategoryRepository.updateCategory(any()));
     });
 
     testWidgets('empty name shows error and does not save', (tester) async {
-      when(() => mockCategoryBloc.state).thenReturn(CategoryLoaded(categories: testCategories));
-      when(() => mockCategoryBloc.stream).thenAnswer((_) => Stream.value(CategoryLoaded(categories: testCategories)));
+      when(() => mockCategoryRepository.getCategories()).thenAnswer((_) async => testCategories);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<CategoryBloc>.value(
-            value: mockCategoryBloc,
-            child: const HomeScreen(),
-          ),
+        const MaterialApp(
+          home: HomeScreen(),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.edit).first);
       await tester.pumpAndSettle();
@@ -179,22 +164,18 @@ void main() {
       await tester.pump();
 
       expect(find.text('Название не может быть пустым'), findsOneWidget);
-      verifyNever(() => mockCategoryBloc.add(any(that: isA<UpdateCategoryEvent>())));
+      verifyNever(() => mockCategoryRepository.updateCategory(any()));
     });
 
     testWidgets('duplicate name shows error and does not save', (tester) async {
-      when(() => mockCategoryBloc.state).thenReturn(CategoryLoaded(categories: testCategories));
-      when(() => mockCategoryBloc.stream).thenAnswer((_) => Stream.value(CategoryLoaded(categories: testCategories)));
+      when(() => mockCategoryRepository.getCategories()).thenAnswer((_) async => testCategories);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<CategoryBloc>.value(
-            value: mockCategoryBloc,
-            child: const HomeScreen(),
-          ),
+        const MaterialApp(
+          home: HomeScreen(),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       // Edit first category and try to name it like the second
       await tester.tap(find.byIcon(Icons.edit).first);
@@ -207,22 +188,18 @@ void main() {
       await tester.pump();
 
       expect(find.text('Категория с таким названием уже существует'), findsOneWidget);
-      verifyNever(() => mockCategoryBloc.add(any(that: isA<UpdateCategoryEvent>())));
+      verifyNever(() => mockCategoryRepository.updateCategory(any()));
     });
 
     testWidgets('same name as current does not dispatch event', (tester) async {
-      when(() => mockCategoryBloc.state).thenReturn(CategoryLoaded(categories: testCategories));
-      when(() => mockCategoryBloc.stream).thenAnswer((_) => Stream.value(CategoryLoaded(categories: testCategories)));
+      when(() => mockCategoryRepository.getCategories()).thenAnswer((_) async => testCategories);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<CategoryBloc>.value(
-            value: mockCategoryBloc,
-            child: const HomeScreen(),
-          ),
+        const MaterialApp(
+          home: HomeScreen(),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.edit).first);
       await tester.pumpAndSettle();
@@ -233,22 +210,18 @@ void main() {
 
       // Should close dialog without dispatching
       expect(find.text('Редактировать категорию'), findsNothing);
-      verifyNever(() => mockCategoryBloc.add(any(that: isA<UpdateCategoryEvent>())));
+      verifyNever(() => mockCategoryRepository.updateCategory(any()));
     });
 
     testWidgets('tapping category card navigates to category screen', (tester) async {
-      when(() => mockCategoryBloc.state).thenReturn(CategoryLoaded(categories: testCategories));
-      when(() => mockCategoryBloc.stream).thenAnswer((_) => Stream.value(CategoryLoaded(categories: testCategories)));
+      when(() => mockCategoryRepository.getCategories()).thenAnswer((_) async => testCategories);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<CategoryBloc>.value(
-            value: mockCategoryBloc,
-            child: const HomeScreen(),
-          ),
+        const MaterialApp(
+          home: HomeScreen(),
         ),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       // Tap on the category card itself (not the edit/delete buttons)
       await tester.tap(find.text('Фильмы'));
