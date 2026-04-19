@@ -1,4 +1,4 @@
-﻿# PC Media Center - Roadmap
+# PC Media Center - Roadmap
 
 ## Overview
 A media center application for managing and organizing digital media.
@@ -79,6 +79,21 @@ A media center application for managing and organizing digital media.
 
 ---
 
+### Phase 7: Fix Critical Code Issues
+**Goal:** Address all critical, high, and medium concerns identified in codebase investigation.
+**Requirements:** CRITICAL-01, CRITICAL-02, CRITICAL-03, CRITICAL-04, HIGH-05, HIGH-06, HIGH-07, HIGH-08, HIGH-09, HIGH-10, HIGH-11
+**Plans:** 5 plans in 3 waves
+
+#### Plans:
+- [ ] **07-01-PLAN.md** — Critical Compilation Fixes (Wave 1): Fix undefined variable, import paths, missing imports
+- [ ] **07-02-PLAN.md** — Critical UI Bug Fix (Wave 1): Fix dialog onChanged bug
+- [ ] **07-03-PLAN.md** — Memory & Lifecycle Fixes (Wave 2): Cancel subscriptions, fix BLoC lifecycle
+- [ ] **07-04-PLAN.md** — Error Handling & Logging (Wave 2): Replace print(), add logging, domain exceptions, Dio timeouts
+- [ ] **07-05-PLAN.md** — Testing Infrastructure (Wave 3): Set up bloc_test, create BLoC unit tests
+
+---
+
 ## Notes
 - Phase 1 establishes the foundation for all subsequent phases
 - Authentication must be completed before any user-facing features
+- Phase 7 addresses technical debt before adding new features
