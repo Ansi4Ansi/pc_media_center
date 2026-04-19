@@ -39,9 +39,38 @@ class WindowsLauncherService implements LauncherService {
     if (path.isEmpty) {
       throw ArgumentError('Path cannot be empty');
     }
-    
-    // TODO: Implement Windows-specific launching
-    return const LaunchResult.success();
+
+    // Check if file exists
+    final file = File(path);
+    if (!await file.exists()) {
+      return LaunchResult.failure('Файл не найден: $path');
+    }
+
+    try {
+      // Use cmd /c start to launch file with default associated program
+      final result = await Process.run(
+        'cmd',
+        ['/c', 'start', '', path],
+        runInShell: false,
+      );
+
+      if (result.exitCode != 0) {
+        // Parse common Windows error codes
+        final errorOutput = result.stderr.toString().toLowerCase();
+        if (errorOutput.contains('not found') ||
+            errorOutput.contains('не найден')) {
+          return LaunchResult.failure('Файл не найден: $path');
+        }
+        return LaunchResult.failure(
+            'Не удалось запустить файл: ${result.stderr}');
+      }
+
+      return const LaunchResult.success();
+    } on ProcessException catch (e) {
+      return LaunchResult.failure('Не удалось запустить файл: ${e.message}');
+    } catch (e) {
+      return LaunchResult.failure('Не удалось запустить файл: $e');
+    }
   }
 }
 
@@ -53,9 +82,42 @@ class LinuxLauncherService implements LauncherService {
     if (path.isEmpty) {
       throw ArgumentError('Path cannot be empty');
     }
-    
-    // TODO: Implement Linux-specific launching
-    return const LaunchResult.success();
+
+    // Check if file exists
+    final file = File(path);
+    if (!await file.exists()) {
+      return LaunchResult.failure('Файл не найден: $path');
+    }
+
+    try {
+      // Use xdg-open to launch file with default associated program
+      final result = await Process.run(
+        'xdg-open',
+        [path],
+        runInShell: false,
+      );
+
+      if (result.exitCode != 0) {
+        // xdg-open exit codes: 3 = file not found, 4 = no application
+        if (result.exitCode == 3) {
+          return LaunchResult.failure('Файл не найден: $path');
+        } else if (result.exitCode == 4) {
+          return LaunchResult.failure(
+              'Нет приложения для открытия этого файла');
+        }
+        return LaunchResult.failure(
+            'Не удалось запустить файл: ${result.stderr}');
+      }
+
+      return const LaunchResult.success();
+    } on ProcessException catch (e) {
+      if (e.message.contains('xdg-open')) {
+        return LaunchResult.failure('Утилита xdg-open не установлена');
+      }
+      return LaunchResult.failure('Не удалось запустить файл: ${e.message}');
+    } catch (e) {
+      return LaunchResult.failure('Не удалось запустить файл: $e');
+    }
   }
 }
 
@@ -67,8 +129,42 @@ class MacOSLauncherService implements LauncherService {
     if (path.isEmpty) {
       throw ArgumentError('Path cannot be empty');
     }
-    
-    // TODO: Implement macOS-specific launching
-    return const LaunchResult.success();
+
+    // Check if file exists
+    final file = File(path);
+    if (!await file.exists()) {
+      return LaunchResult.failure('Файл не найден: $path');
+    }
+
+    try {
+      // Build arguments list
+      final args = ['open'];
+      if (arguments != null && arguments.isNotEmpty) {
+        args.addAll(arguments.split(' '));
+      }
+      args.add(path);
+
+      // Use open command to launch file with default associated program
+      final result = await Process.run(
+        '/usr/bin/open',
+        args.sublist(1), // Skip 'open' since it's the command itself
+        runInShell: false,
+      );
+
+      if (result.exitCode != 0) {
+        // open command exit code 1 typically means file not found
+        if (result.exitCode == 1) {
+          return LaunchResult.failure('Файл не найден: $path');
+        }
+        return LaunchResult.failure(
+            'Не удалось запустить файл: ${result.stderr}');
+      }
+
+      return const LaunchResult.success();
+    } on ProcessException catch (e) {
+      return LaunchResult.failure('Не удалось запустить файл: ${e.message}');
+    } catch (e) {
+      return LaunchResult.failure('Не удалось запустить файл: $e');
+    }
   }
 }
