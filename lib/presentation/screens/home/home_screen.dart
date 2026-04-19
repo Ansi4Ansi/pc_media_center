@@ -18,10 +18,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen> {
-  void _showAddCategoryDialog(BuildContext context) {
+  void _showAddCategoryDialog(BuildContext parentContext) {
     final controller = TextEditingController();
+    final bloc = widget.categoryBloc ?? getIt<CategoryBloc>();
+    
     showDialog<String>(
-      context: context,
+      context: parentContext,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Новая категория'),
@@ -44,7 +46,7 @@ class HomeScreenState extends State<HomeScreen> {
               onPressed: () {
                 final name = controller.text;
                 if (name.isNotEmpty) {
-                  context.read<CategoryBloc>().add(AddCategoryEvent(name: name));
+                  bloc.add(AddCategoryEvent(name: name));
                 }
                 Navigator.of(dialogContext).pop();
                 controller.dispose();
@@ -57,12 +59,12 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showEditCategoryDialog(BuildContext context, CategoryEntity category) {
+  void _showEditCategoryDialog(BuildContext parentContext, CategoryEntity category) {
     final controller = TextEditingController(text: category.name);
     String? errorText;
 
     showDialog<void>(
-      context: context,
+      context: parentContext,
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -105,7 +107,8 @@ class HomeScreenState extends State<HomeScreen> {
                     }
 
                     // Check for duplicates against current categories
-                    final currentState = context.read<CategoryBloc>().state;
+                    final bloc = widget.categoryBloc ?? getIt<CategoryBloc>();
+                    final currentState = bloc.state;
                     if (currentState is CategoryLoaded) {
                       final exists = currentState.categories.any(
                         (c) => c.name.toLowerCase() == newName.toLowerCase() && c.id != category.id,
@@ -119,7 +122,7 @@ class HomeScreenState extends State<HomeScreen> {
                     }
 
                     // Dispatch update event
-                    context.read<CategoryBloc>().add(
+                    bloc.add(
                       UpdateCategoryEvent(
                         categoryId: category.id,
                         name: newName,
@@ -139,9 +142,11 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context, CategoryEntity category) {
+  void _showDeleteConfirmation(BuildContext parentContext, CategoryEntity category) {
+    final bloc = widget.categoryBloc ?? getIt<CategoryBloc>();
+    
     showDialog<void>(
-      context: context,
+      context: parentContext,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: const Text('Удалить категорию'),
@@ -155,7 +160,7 @@ class HomeScreenState extends State<HomeScreen> {
             ),
             TextButton(
               onPressed: () {
-                context.read<CategoryBloc>().add(
+                bloc.add(
                   DeleteCategoryEvent(category.id),
                 );
                 Navigator.of(dialogContext).pop();
