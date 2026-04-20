@@ -43,14 +43,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
   // Scanner related
   final DirectoryScanner _scanner = DirectoryScanner();
   Completer<void>? _scanCancellationToken;
+  bool _initialLoadDone = false;
 
   @override
   void initState() {
     super.initState();
-    // Defer initial load to after first frame when BlocProvider is available
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadItems(context, 0, _itemsPerPage);
-    });
   }
 
   Future<void> _loadItems(BuildContext context, int offset, int limit) async {
@@ -130,6 +127,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
       create: (context) => getIt<ItemBloc>(),
       child: Builder(
         builder: (context) {
+          // Trigger initial load once BlocProvider is available
+          if (!_initialLoadDone) {
+            _initialLoadDone = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _loadItems(context, 0, _itemsPerPage);
+            });
+          }
           return Scaffold(
             appBar: AppBar(
               title: _isSearching
@@ -346,7 +350,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   /// Scan directory and add items
   Future<void> _scanDirectory(BuildContext context) async {
     // Pick directory
-    final result = await FilePicker.platform.getDirectoryPath();
+    final result = await FilePicker.getDirectoryPath();
     if (result == null) return;
 
     // Show extension picker
